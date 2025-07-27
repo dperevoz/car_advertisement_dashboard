@@ -4,7 +4,7 @@ This Streamlit app provides interactive visualizations to explore pricing trends
 
 ## Run the app
 
-To be added
+[Link](https://car-sales-dashboard-52mu.onrender.com/) (activating on Render may take time, please be patient)
 
 ## Features
 

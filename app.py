@@ -60,10 +60,10 @@ st.title('Car sales dashboard')
 #   Allows to compare price distributions by a chosen parameter
 #   Allows to exclude outliers based on a checkbox selection
 st.header('1. Price distribution by different parameters')
-st.markdown('''
-    This chart shows the distribution of prices by brand, type or condition. \n
-    The x-axis is sorted by the median price.
-    Outliers are excluded by default, but this can be changed by unchecking the box below. \n
+st.write('''
+    This chart shows the distribution of prices by brand, type or condition.  
+    The x-axis is sorted by the median price.  
+    Outliers are excluded by default, but this can be changed by unchecking the box below.
     ''')
 
 # Creating a parameter for choosing the column for the x-axis
