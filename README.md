@@ -8,7 +8,7 @@ To be added
 
 ## Features
 
-1. **Price distribution by user-chose parameter**  
+1. **Price distribution by user-chosen parameter**  
    - Compare price distributions by brand, type, or condition  
    - Option to exclude outliers (top 10%, excluded by default)  
    - Categories sorted by median price
