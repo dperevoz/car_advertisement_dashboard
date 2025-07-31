@@ -111,7 +111,7 @@ st.markdown('''
     ''')
 
 # Filtering out rows with 'model_year' less than 1960 to exclude outliers (0 or 1 car per year)
-df_by_year = df[df['model_year'] > 1960]
+df_by_year = df_filtered[df_filtered['model_year'] > 1960]
 
 # Creating a multiselect box for filtering by vehicle's condition
 # The conditions are sorted from worst to best
