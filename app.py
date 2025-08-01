@@ -1,7 +1,9 @@
 ### Preparing the environment for the Streamlit app ###
 # Importing necessary libraries
 import pandas as pd
-import plotly_express as px
+import plotly.express as px
+import plotly.io as pio
+import plotly.graph_objects as go
 import streamlit as st
 
 # Loading the dataset
@@ -17,30 +19,43 @@ df = pd.read_csv('./vehicles_us.csv')
 
 
 ### Cleaning the dataset: ###
+
 # Convert 'date_posted' column to datetime format
 df['date_posted'] = pd.to_datetime(df['date_posted'])
+# Convert 'model_year' and 'cylinders' to 'Int64' format
+df['model_year'] = df['model_year'].astype('Int64')
+df['cylinders'] = df['cylinders'].astype('Int64')
 
-# Removing the 'is_4wd' column from the dataset
-#   It contains only values '1.0' and 'NaN. 
-#   So we cannot compare 4WD with non-4WD cars, as we don't know if any car is non-4WD for certain. 
-#   That means that we cannot use this column for any analysis.
-df = df.drop(columns=['is_4wd'])
+# Filling missing values felevant columns
+# Fill missing values for 'cylinders' with the most common value in the column
+df['cylinders'] = df['cylinders'].fillna(df['cylinders'].mode()[0])
+# Fill missing values for 'paint_color' with 'unknown'
+df['paint_color'] = df['paint_color'].fillna('unknown')
+# Updating 'is_4wd' column and renaming it to 'drivetrain':
+df['is_4wd'] = df['is_4wd'].fillna('AWD')
+df['is_4wd'] = df['is_4wd'].replace({1.0 : '4WD'})
+df.rename(columns={'is_4wd': 'drivetrain'}, inplace=True)
 
-# Replacing 'NaN' with 'not_listed' for non-numeric columns
-for column in df.columns:
-    if df[column].dtype == 'object':
-        df[column] = df[column].fillna('not_listed')
+# Removing listings that have their price set below 300 as likely errors or spam
+df = df[(df['price'] > 300)]
 
 # Creating 'brand' column, which contains the first word of the 'model' column
-def get_brand(model):
-    return model.split()[0]
 df['brand'] = df['model'].str.split().str[0]
 
-# Removing listings that have their price set below 1000
-#   These listings are likely to be errors or spam.
-df = df[(df['price'] > 1000)]
 
 
+## Creating filters for treating outliers
+
+# Creating a 99th percentile threshold for removing outliers in the 'price' column
+price_threshold = df['price'].quantile(0.99)
+df_filtered_pr = df[df['price'] < price_threshold]
+
+# Filtering by 99th percentile of odometer
+odometer_cutoff = df_filtered_pr['odometer'].quantile(0.99)
+df_filtered_pr_od = df_filtered_pr[df_filtered_pr['odometer'] <= odometer_cutoff]
+
+# Removing vehicles older than 1960 to exclude outliers in 'model_years' (0 or 1 car per year)
+df_filtered_pr_year = df_filtered_pr[df_filtered_pr['model_year'] >= 1960]
 
 
 
@@ -53,24 +68,53 @@ df = df[(df['price'] > 1000)]
 # Setup
 st.set_page_config(layout="wide")
 st.title('Car sales dashboard')
+st.markdown('''
+         **This app allows to explore which factors impact prices for used cars**
+         Below you can see:
+         - A **dashboard** allowing to explore how different categorical characteristics impact the price.
+         - A **histogram** showing correlation between price and vehicle's age.
+         - A **scatterplot** showing correlation between price and vehicle's mileage.
+         ''')
 
 
 
-# First chart: violin plot of price distributions by categorical parameters
+
+
+# Dashboard: box plot of price distributions by categorical characteristics
 #   Allows to compare price distributions by a chosen parameter
 #   Allows to exclude outliers based on a checkbox selection
-st.header('1. Price distribution by different parameters')
-st.write('''
-    This chart shows the distribution of prices by brand, type or condition.  
-    The x-axis is sorted by the median price.  
-    Outliers are excluded by default, but this can be changed by unchecking the box below.
+st.header('1. Price distribution by different vehicle characteristics')
+st.markdown('''
+            Using this dashboard you can explore how the following characteristics impact vehicle's price
+            (to switch between presentations, please use the selector below):
+            - condition,
+            - brand,
+            - type (sedan, coupe, bus, etc),
+            - fuel type,
+            - transmission type,
+            - drivetrain type (4WD vs AWD),
+            - number of cylinders.
+            
+            Each category is presented as a box plot:
+            - The boxes represent the price range for middle %50 of all cars in the category.
+            - Horizontal lines inside each box represent median price for the category.
+            - Dashed horizontal line on the chart represents overall median price for the whole database. 
+
+            Outliers by price (top %1) are excluded by default. To see the whole range, please uncheck the checkbox below.
     ''')
+
 
 # Creating a parameter for choosing the column for the x-axis
 param_to_compare = st.selectbox(
     'Select parameter for comparison',
-    options=['brand', 'type', 'condition'],
-    index=0,
+    options=['brand', 
+            'condition', 
+            'cylinders', 
+            'drivetrain', 
+            'fuel', 
+            'transmission', 
+            'type'],
+    index=1,
     key='x_axis_column'
 )
 # Function for ordering x-axis based on median price for selected parameter
@@ -78,18 +122,15 @@ def conditions_order(df, param):
     return df.groupby(param)['price'].median().sort_values().index.tolist()
 
 # Checkbox to exclude outliers from the plot
-# We will use 90th percentile as a threshold for outliers
-price_threshold = df['price'].quantile(0.9)
-df_filtered = df[df['price'] < price_threshold]
 exclude_outliers = st.checkbox(
-    'Exclude outliers',
+    'Exclude outliers (top %1 by price)',
     value=True,
-    key='exclude_outliers'
+    key='exclude_price_outliers'
 )
-chosen_df = df_filtered if exclude_outliers else df
+chosen_df = df_filtered_pr if exclude_outliers else df
 
-# Creating the violin plot
-fig = px.violin(
+# Creating the box plot
+fig = px.box(
         chosen_df,
         y='price', 
         x=param_to_compare, 
