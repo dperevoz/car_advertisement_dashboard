@@ -71,6 +71,7 @@ st.set_page_config(layout="wide")
 st.title('Car sales dashboard')
 st.markdown('''
          **This app allows to explore which factors impact prices for used cars**
+         \n\n
          Below you can see:
          1. A **dashboard** allowing to explore how different categorical characteristics impact the price.
          2. A **histogram** showing correlation between price and vehicle's age.
@@ -217,7 +218,7 @@ fig = px.scatter(
     df_filtered_odometer, 
     x='odometer', 
     y='price', 
-    opacity=0.2,
+    opacity=0.1,
     trendline='ols',
     title="Price distribution by odometer", 
     height=600)
