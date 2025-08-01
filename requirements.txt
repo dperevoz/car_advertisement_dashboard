@@ -1,5 +1,3 @@
 pandas
-plotly_express
+plotly
 streamlit
-plotly.io
-plotly.graph_objects
